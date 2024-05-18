@@ -1,9 +1,3 @@
-# Note, this file is deprecated and is only in /src/ instead of /core/src/because of exceptions thrown
-# in older versions of PK. Older versions before the maven split check in /src/, and if it doesn't exist,
-# throw a big exception. This file is here so older versions of PK will still work for a while, while newer
-# versions can use the updated path in /core/src/. This can be removed in a few year as older PK versions
-# are phased out of production.
-
 8621211e-283b-46f5-87bc-95a66d68880e/&eProjectKorra Founder/ Mist
 a197291a-cd78-43bb-aa38-52b7c82bc68c/&cProjectKorra Administrator/ Omnicypher
 d7757be8-86de-4898-ab4f-2b1b2fbc3dfa/&5ProjectKorra Developer/ StrangeOne101
