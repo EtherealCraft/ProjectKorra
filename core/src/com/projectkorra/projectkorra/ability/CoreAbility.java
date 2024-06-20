@@ -32,8 +32,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 
-import co.aikar.timings.lib.MCTiming;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
