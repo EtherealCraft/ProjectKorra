@@ -28,12 +28,12 @@ public class JetBlast extends FireAbility implements ComboAbility {
 	@Attribute(Attribute.DURATION)
 	private long duration;
 
-	private final FireJet fireJet;
+	private final CoreAbility fireJet;
 
 	public JetBlast(final Player player) {
 		super(player);
 
-		this.fireJet = CoreAbility.getAbility(player, FireJet.class);
+		this.fireJet = CoreAbility.getAbility(player, CoreAbility.getAbility("FireJet").getClass());
 		if (!this.bPlayer.canBendIgnoreBinds(this)
 				|| CoreAbility.hasAbility(player, JetBlaze.class) || fireJet == null) {
 			return;
@@ -48,8 +48,8 @@ public class JetBlast extends FireAbility implements ComboAbility {
 			this.cooldown = 0;
 		}
 
-		this.fireJet.setSpeed(speed);
-		this.fireJet.setDuration(duration);
+		this.fireJet.setAttribute(Attribute.SPEED, speed);
+		this.fireJet.setAttribute(Attribute.DURATION, duration);
 		this.start();
 		this.playExplosion();
 	}

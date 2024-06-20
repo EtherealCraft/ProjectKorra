@@ -16,7 +16,6 @@ import com.projectkorra.projectkorra.ability.ComboAbility;
 import com.projectkorra.projectkorra.ability.FireAbility;
 import com.projectkorra.projectkorra.ability.util.ComboManager.AbilityInformation;
 import com.projectkorra.projectkorra.attribute.Attribute;
-import com.projectkorra.projectkorra.firebending.FireJet;
 import com.projectkorra.projectkorra.util.ParticleEffect;
 
 public class JetBlaze extends FireAbility implements ComboAbility {
@@ -34,12 +33,12 @@ public class JetBlaze extends FireAbility implements ComboAbility {
 	@Attribute(Attribute.DURATION)
 	private long duration;
 
-	private final FireJet fireJet;
+	private final CoreAbility fireJet;
 
 	public JetBlaze(final Player player) {
 		super(player);
 
-		this.fireJet = CoreAbility.getAbility(player, FireJet.class);
+		this.fireJet = CoreAbility.getAbility(player, CoreAbility.getAbility("FireJet").getClass());
 		if (!this.bPlayer.canBendIgnoreBinds(this)
 				|| CoreAbility.hasAbility(player, JetBlast.class) || fireJet == null) {
 			return;
@@ -60,8 +59,8 @@ public class JetBlaze extends FireAbility implements ComboAbility {
 			this.fireTicks = getConfig().getDouble("Abilities.Avatar.AvatarState.Fire.JetBlaze.FireTicks");
 		}
 
-		this.fireJet.setSpeed(speed);
-		this.fireJet.setDuration(duration);
+		this.fireJet.setAttribute(Attribute.SPEED, speed);
+		this.fireJet.setAttribute(Attribute.DURATION, duration);
 		this.start();
 	}
 
@@ -81,7 +80,8 @@ public class JetBlaze extends FireAbility implements ComboAbility {
 			remove();
 			return;
 		}
-
+//		this.fireJet.setAttribute(Attribute.SPEED, speed);
+//		this.fireJet.setAttribute(Attribute.DURATION, duration);
 		Vector streamDir = this.player.getVelocity().multiply(-1);
 		final FireComboStream fs = new FireComboStream(this.player, this, streamDir, this.player.getLocation(), 5, 1);
 		fs.setDensity(8);
