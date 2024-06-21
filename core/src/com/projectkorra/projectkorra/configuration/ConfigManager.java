@@ -700,7 +700,7 @@ public class ConfigManager {
 			config.addDefault("Properties.RegionProtection.RespectFactions", true);
 			config.addDefault("Properties.RegionProtection.RespectTowny", true);
 			config.addDefault("Properties.RegionProtection.Towny.AllowedAbilities", Arrays.asList(
-					"WaterSpout", "HydroTherapy", "PlantWalk", "EarthSurf", "FireJet"
+					"WaterSpout", "HydroTherapy", "PlantWalk", "Catapult", "EarthSurf", "FireJet"
 			));
 			config.addDefault("Properties.RegionProtection.RespectLWC", true);
 			config.addDefault("Properties.RegionProtection.RespectLands", true);

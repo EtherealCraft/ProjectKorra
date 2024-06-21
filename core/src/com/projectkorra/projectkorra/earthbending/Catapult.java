@@ -34,6 +34,8 @@ import com.projectkorra.projectkorra.util.ParticleEffect;
 
 public class Catapult extends EarthAbility {
 
+	private static boolean townyEnabled = RegionProtection.getActiveProtections().values().stream().anyMatch(hook -> hook instanceof Towny);
+
 	private double stageTimeMult;
 	@Attribute(Attribute.COOLDOWN)
 	private long cooldown;
@@ -107,7 +109,7 @@ public class Catapult extends EarthAbility {
 
 	private void moveEarth(final Vector apply, final Vector direction) {
 		List<Entity> launchEntities = new ArrayList<>();
-		boolean townyEnabled = RegionProtection.getActiveProtections().values().stream().anyMatch(hook -> hook instanceof Towny);
+
 		for (final Entity entity : GeneralMethods.getEntitiesAroundPoint(this.origin, 2)) {
 			if (entity.getEntityId() != this.player.getEntityId()) {
 				if (townyEnabled) {
