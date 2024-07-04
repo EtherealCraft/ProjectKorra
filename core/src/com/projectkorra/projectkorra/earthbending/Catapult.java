@@ -134,6 +134,7 @@ public class Catapult extends EarthAbility {
 	private boolean fullLauching = false;
 	private int fullLaunchSteps = -1;
 	private int maxFullLaunchSteps = 40;
+	private int stuckTicks = 0;
 	private Vector direction;
 	Location beforeUpdateLocation;
 	Location currentLocation;
@@ -224,15 +225,30 @@ public class Catapult extends EarthAbility {
 				beforeUpdateLocation = player.getLocation();
 			} else {
 				currentLocation = player.getLocation();
-				if ((beforeUpdateLocation.getX() == currentLocation.getX()
-						|| beforeUpdateLocation.getY() == currentLocation.getY()
+				boolean stuckX, stuckY = false;
+
+				if (((stuckX = beforeUpdateLocation.getX() == currentLocation.getX())
+						|| (stuckY = beforeUpdateLocation.getY() == currentLocation.getY())
 						|| beforeUpdateLocation.getZ() == currentLocation.getZ())
-						&& fullLaunchSteps > 3) { // a couple of times this triggered at the beginning of a move, couldn't reproduce it. But this should prevent that.
-					DamageHandler.damageEntity(player, 2, this, true);
-					this.remove();
-					return;
+				&& fullLaunchSteps > 2) { // a couple of times this triggered at the beginning of a move, couldn't reproduce it. But this should prevent that.
+					boolean hitSomething;
+					if (stuckX) {
+						hitSomething = !(player.getLocation().clone().add(1, 0, 0).getBlock().isPassable() && player.getLocation().clone().add(-1, 0, 0).getBlock().isPassable());
+					} else if (stuckY) {
+						hitSomething = !player.getLocation().clone().add(0, 2, 0).getBlock().isPassable();
+					} else {
+						hitSomething = !(player.getLocation().clone().add(0, 0, 1).getBlock().isPassable() && player.getLocation().clone().add(0, 0, -1).getBlock().isPassable());
+					}
+
+					if (hitSomething) {
+						DamageHandler.damageEntity(player, 2, this, true);
+						this.remove();
+						return;
+					}
+
 				} else {
 					beforeUpdateLocation = player.getLocation();
+					stuckTicks = 0;
 				}
 			}
 
