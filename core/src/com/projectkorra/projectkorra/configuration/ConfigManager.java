@@ -9,10 +9,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.EntityType;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ConfigManager {
 
@@ -702,6 +699,9 @@ public class ConfigManager {
 			config.addDefault("Properties.RegionProtection.RespectGriefPrevention", true);
 			config.addDefault("Properties.RegionProtection.RespectFactions", true);
 			config.addDefault("Properties.RegionProtection.RespectTowny", true);
+			config.addDefault("Properties.RegionProtection.Towny.AllowedAbilities", Arrays.asList(
+					"WaterSpout", "HydroTherapy", "PlantWalk", "Catapult", "EarthSurf", "FireJet"
+			));
 			config.addDefault("Properties.RegionProtection.RespectLWC", true);
 			config.addDefault("Properties.RegionProtection.RespectLands", true);
 			config.addDefault("Properties.RegionProtection.Residence.Flag", "bending");
@@ -711,6 +711,7 @@ public class ConfigManager {
 			config.addDefault("Properties.RegionProtection.RespectPlotSquared", true);
 			config.addDefault("Properties.RegionProtection.RespectRedProtect", true);
 			config.addDefault("Properties.RegionProtection.CacheBlockTime", 5000);
+
 
 			config.addDefault("Properties.Air.CanBendWithWeapons", false);
 			config.addDefault("Properties.Air.Particles", "spell");
@@ -1353,7 +1354,9 @@ public class ConfigManager {
 			config.addDefault("Abilities.Earth.Catapult.Cooldown", 7000);
 			config.addDefault("Abilities.Earth.Catapult.StageTimeMult", 2.0);
 			config.addDefault("Abilities.Earth.Catapult.Angle", 45);
+			config.addDefault("Abilities.Earth.Catapult.FullChargeAngle", 75);
 			config.addDefault("Abilities.Earth.Catapult.CancelWithAngle", false);
+			config.addDefault("Abilities.Earth.Catapult.UseNewCatapult", true);
 
 			config.addDefault("Abilities.Earth.Collapse.Enabled", true);
 			config.addDefault("Abilities.Earth.Collapse.SelectRange", 20);
