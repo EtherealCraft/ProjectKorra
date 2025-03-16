@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import com.projectkorra.projectkorra.ability.CoreAbility;
 import com.projectkorra.projectkorra.ability.util.ComboUtil;
+import com.projectkorra.projectkorra.attribute.markers.DayNightFactor;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -14,18 +15,17 @@ import com.projectkorra.projectkorra.ability.ComboAbility;
 import com.projectkorra.projectkorra.ability.FireAbility;
 import com.projectkorra.projectkorra.ability.util.ComboManager.AbilityInformation;
 import com.projectkorra.projectkorra.attribute.Attribute;
-import com.projectkorra.projectkorra.firebending.FireJet;
 import com.projectkorra.projectkorra.util.ParticleEffect;
 import org.bukkit.util.Vector;
 
 public class JetBlast extends FireAbility implements ComboAbility {
 
-	@Attribute(Attribute.COOLDOWN)
+	@Attribute(Attribute.COOLDOWN) @DayNightFactor(invert = true)
 	private long cooldown;
-	@Attribute(Attribute.SPEED)
+	@Attribute(Attribute.SPEED) @DayNightFactor
 	private double speed;
 	private ArrayList<FireComboStream> tasks;
-	@Attribute(Attribute.DURATION)
+	@Attribute(Attribute.DURATION) @DayNightFactor
 	private long duration;
 
 	private final CoreAbility fireJet;
@@ -41,15 +41,12 @@ public class JetBlast extends FireAbility implements ComboAbility {
 
 		this.tasks = new ArrayList<>();
 		this.speed = getConfig().getDouble("Abilities.Fire.JetBlast.Speed");
-		this.cooldown = applyModifiersCooldown(getConfig().getLong("Abilities.Fire.JetBlast.Cooldown"));
+		this.cooldown = getConfig().getLong("Abilities.Fire.JetBlast.Cooldown");
 		this.duration = getConfig().getLong("Abilities.Fire.JetBlast.Duration");
-
-		if (this.bPlayer.isAvatarState()) {
-			this.cooldown = 0;
-		}
 
 		this.fireJet.setAttribute(Attribute.SPEED, speed);
 		this.fireJet.setAttribute(Attribute.DURATION, duration);
+
 		this.start();
 		this.playExplosion();
 	}
@@ -124,4 +121,12 @@ public class JetBlast extends FireAbility implements ComboAbility {
 	public boolean isHarmlessAbility() {
 		return false;
 	}
+
+    public double getSpeed() {
+        return this.speed;
+    }
+
+    public long getDuration() {
+        return this.duration;
+    }
 }

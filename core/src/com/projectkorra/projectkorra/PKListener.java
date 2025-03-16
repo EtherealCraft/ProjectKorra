@@ -15,6 +15,7 @@ import com.projectkorra.projectkorra.ability.Ability;
 import com.projectkorra.projectkorra.ability.AddonAbility;
 import com.projectkorra.projectkorra.ability.AirAbility;
 import com.projectkorra.projectkorra.ability.AvatarAbility;
+import com.projectkorra.projectkorra.ability.BlueFireAbility;
 import com.projectkorra.projectkorra.ability.ChiAbility;
 import com.projectkorra.projectkorra.ability.CoreAbility;
 import com.projectkorra.projectkorra.ability.EarthAbility;
@@ -35,6 +36,11 @@ import com.projectkorra.projectkorra.airbending.Suffocate;
 import com.projectkorra.projectkorra.airbending.Tornado;
 import com.projectkorra.projectkorra.airbending.flight.FlightMultiAbility;
 import com.projectkorra.projectkorra.airbending.passive.GracefulDescent;
+import com.projectkorra.projectkorra.attribute.Attribute;
+import com.projectkorra.projectkorra.attribute.AttributeCache;
+import com.projectkorra.projectkorra.attribute.AttributeModification;
+import com.projectkorra.projectkorra.attribute.AttributeModifier;
+import com.projectkorra.projectkorra.attribute.markers.DayNightFactor;
 import com.projectkorra.projectkorra.avatar.AvatarState;
 import com.projectkorra.projectkorra.board.BendingBoardManager;
 import com.projectkorra.projectkorra.chiblocking.AcrobatStance;
@@ -71,6 +77,7 @@ import com.projectkorra.projectkorra.earthbending.metal.MetalClips;
 import com.projectkorra.projectkorra.earthbending.passive.DensityShift;
 import com.projectkorra.projectkorra.earthbending.passive.EarthPassive;
 import com.projectkorra.projectkorra.earthbending.passive.FerroControl;
+import com.projectkorra.projectkorra.event.AbilityRecalculateAttributeEvent;
 import com.projectkorra.projectkorra.event.EntityBendingDeathEvent;
 import com.projectkorra.projectkorra.event.HorizontalVelocityChangeEvent;
 import com.projectkorra.projectkorra.event.PlayerBindChangeEvent;
@@ -79,6 +86,7 @@ import com.projectkorra.projectkorra.event.PlayerChangeSubElementEvent;
 import com.projectkorra.projectkorra.event.PlayerJumpEvent;
 import com.projectkorra.projectkorra.event.PlayerStanceChangeEvent;
 import com.projectkorra.projectkorra.event.PlayerSwingEvent;
+import com.projectkorra.projectkorra.event.WorldTimeEvent;
 import com.projectkorra.projectkorra.firebending.Blaze;
 import com.projectkorra.projectkorra.firebending.BlazeRing;
 import com.projectkorra.projectkorra.firebending.FireBlast;
@@ -137,9 +145,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Statistic;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.enchantments.EnchantmentTarget;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
@@ -181,7 +191,6 @@ import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
@@ -452,31 +461,34 @@ public class PKListener implements Listener {
 
 	@EventHandler(priority = EventPriority.NORMAL)
 	public void onElementChange(final PlayerChangeElementEvent event) {
-		final Player player = event.getTarget();
-		final BendingPlayer bPlayer = BendingPlayer.getBendingPlayer(player);
-		PassiveManager.registerPassives(player);
-		final boolean chatEnabled = ConfigManager.languageConfig.get().getBoolean("Chat.Enable");
-		if (chatEnabled) {
-			final Element element = event.getElement();
-			String prefix = "";
+		OfflinePlayer oPlayer = event.getTarget();
+		if (oPlayer.isOnline()) {
+			final Player player = (Player) oPlayer;
+			final BendingPlayer bPlayer = BendingPlayer.getBendingPlayer(player);
+			PassiveManager.registerPassives(player);
+			final boolean chatEnabled = ConfigManager.languageConfig.get().getBoolean("Chat.Enable");
+			if (chatEnabled) {
+				final Element element = event.getElement();
+				String prefix = "";
 
-			if (bPlayer == null) {
-				return;
+				if (bPlayer == null) {
+					return;
+				}
+
+				if (bPlayer.getElements().size() > 1) {
+					prefix = Element.AVATAR.getPrefix();
+				} else if (element != null) {
+					prefix = element.getPrefix();
+				} else {
+					prefix = ChatColor.WHITE + ChatColor.translateAlternateColorCodes('&', ConfigManager.languageConfig.get().getString("Chat.Prefixes.Nonbender")) + " ";
+				}
+
+				player.setDisplayName(player.getName());
+				player.setDisplayName(prefix + ChatColor.RESET + player.getDisplayName());
 			}
-
-			if (bPlayer.getElements().size() > 1) {
-				prefix = Element.AVATAR.getPrefix();
-			} else if (element != null) {
-				prefix = element.getPrefix();
-			} else {
-				prefix = ChatColor.WHITE + ChatColor.translateAlternateColorCodes('&', ConfigManager.languageConfig.get().getString("Chat.Prefixes.Nonbender")) + " ";
-			}
-
-			player.setDisplayName(player.getName());
-			player.setDisplayName(prefix + ChatColor.RESET + player.getDisplayName());
+			BendingBoardManager.updateAllSlots(player);
+			FirePassive.handle(player);
 		}
-		BendingBoardManager.updateAllSlots(player);
-		FirePassive.handle(player);
 	}
 
 	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -518,9 +530,9 @@ public class PKListener implements Listener {
 	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
 	public void onEntityDamageByBlock(final EntityDamageByBlockEvent event) {
 		final Block block = event.getDamager();
-		if (block == null) {
-			return;
-		} else if (BendingPlayer.isWorldDisabled(block.getWorld())) {
+
+		//Fix for MythicLib firing false EntityDamageEvents to test its own stuff
+		if (block == null || BendingPlayer.isWorldDisabled(block.getWorld()) || GeneralMethods.isFakeEvent(event)) {
 			return;
 		}
 
@@ -545,6 +557,8 @@ public class PKListener implements Listener {
 		double damage = event.getDamage();
 
 		//Fix for MythicLib firing false EntityDamageEvents to test its own stuff
+		if (GeneralMethods.isFakeEvent(event)) return;
+
 		if (entity instanceof Player && event.getCause() == DamageCause.ENTITY_ATTACK
 				&& event.getDamage(EntityDamageEvent.DamageModifier.BASE) == 0
 				&& event.getFinalDamage() == 0) {
@@ -615,7 +629,7 @@ public class PKListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onEntityDamageEventArmorIgnore(final EntityDamageEvent event) {
-		if (DamageHandler.ignoreArmor(event.getEntity())) {
+		if (DamageHandler.ignoreArmor(event.getEntity()) && !GeneralMethods.isFakeEvent(event)) {
 			DamageHandler.entityDamageCallback(event);
 		}
 	}
@@ -632,50 +646,45 @@ public class PKListener implements Listener {
 			}
 		}
 
-		final CoreAbility[] cookingFireCombos = { CoreAbility.getAbility("JetBlast"), CoreAbility.getAbility("FireWheel"), CoreAbility.getAbility("FireSpin"), CoreAbility.getAbility("FireKick") };
+		// final CoreAbility[] cookingFireCombos = { CoreAbility.getAbility("JetBlast"), CoreAbility.getAbility("FireWheel"), CoreAbility.getAbility("FireSpin"), CoreAbility.getAbility("FireKick") };
 
 		if (BENDING_ENTITY_DEATH.containsKey(event.getEntity())) {
-			final CoreAbility coreAbility = (CoreAbility) BENDING_ENTITY_DEATH.get(event.getEntity());
-			for (final CoreAbility fireCombo : cookingFireCombos) {
-				if (fireCombo == null) {
-					continue;
-				}
-				if (coreAbility.getName().equalsIgnoreCase(fireCombo.getName())) {
-					final List<ItemStack> drops = event.getDrops();
-					final List<ItemStack> newDrops = new ArrayList<>();
-					for (ItemStack cooked : drops) {
-						final Material material = cooked.getType();
-						switch (material) {
-							case BEEF:
-								cooked = new ItemStack(Material.COOKED_BEEF);
-								break;
-							case SALMON:
-								cooked = new ItemStack(Material.COOKED_SALMON);
-								break;
-							case CHICKEN:
-								cooked = new ItemStack(Material.COOKED_CHICKEN);
-								break;
-							case PORKCHOP:
-								cooked = new ItemStack(Material.COOKED_PORKCHOP);
-								break;
-							case MUTTON:
-								cooked = new ItemStack(Material.COOKED_MUTTON);
-								break;
-							case RABBIT:
-								cooked = new ItemStack(Material.COOKED_RABBIT);
-								break;
-							case COD:
-								cooked = new ItemStack(Material.COOKED_COD);
-								break;
-							default:
-								break;
-						}
-						newDrops.add(cooked);
+			final CoreAbility ability = (CoreAbility) BENDING_ENTITY_DEATH.get(event.getEntity());
+
+			if (FireDamageTimer.isEnflamed(event.getEntity()) || (ability != null && ability instanceof FireAbility)) {
+				final List<ItemStack> drops = event.getDrops();
+				final List<ItemStack> newDrops = new ArrayList<>();
+				for (ItemStack cooked : drops) {
+					final Material material = cooked.getType();
+					switch (material) {
+						case BEEF:
+							cooked = new ItemStack(Material.COOKED_BEEF);
+							break;
+						case SALMON:
+							cooked = new ItemStack(Material.COOKED_SALMON);
+							break;
+						case CHICKEN:
+							cooked = new ItemStack(Material.COOKED_CHICKEN);
+							break;
+						case PORKCHOP:
+							cooked = new ItemStack(Material.COOKED_PORKCHOP);
+							break;
+						case MUTTON:
+							cooked = new ItemStack(Material.COOKED_MUTTON);
+							break;
+						case RABBIT:
+							cooked = new ItemStack(Material.COOKED_RABBIT);
+							break;
+						case COD:
+							cooked = new ItemStack(Material.COOKED_COD);
+							break;
+						default:
+							break;
 					}
-					event.getDrops().clear();
-					event.getDrops().addAll(newDrops);
-					break;
+					newDrops.add(cooked);
 				}
+				event.getDrops().clear();
+				event.getDrops().addAll(newDrops);
 			}
 		}
 	}
@@ -885,7 +894,7 @@ public class PKListener implements Listener {
 		String e = "Nonbender";
 		ChatColor c = ChatColor.WHITE;
 		if (bPlayer != null) {
-			if (player.hasPermission("bending.avatar") || bPlayer.getElements().stream().filter(Element::doesCountTowardsAvatar).count() > 1) {
+			if (player.hasPermission("bending.avatar") || bPlayer.getElements().stream().filter(Element::isAvatarElement).count() > 1) {
 				c = Element.AVATAR.getColor();
 				e = Element.AVATAR.getName();
 			} else if (bPlayer.getElements().size() > 0) {
@@ -912,7 +921,7 @@ public class PKListener implements Listener {
 
 	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
 	public void onPlayerDamage(final EntityDamageEvent event) {
-		if (BendingPlayer.isWorldDisabled(event.getEntity().getWorld())) {
+		if (BendingPlayer.isWorldDisabled(event.getEntity().getWorld()) || GeneralMethods.isFakeEvent(event)) {
 			return;
 		}
 		if (event.getEntity() instanceof Player) {
@@ -984,10 +993,23 @@ public class PKListener implements Listener {
 				event.setDamage(0D);
 				event.setCancelled(true);
 			}
+		}
+	}
 
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onPlayerDamageFinal(EntityDamageEvent event) {
+		if (event.getEntity() instanceof Player && !event.isCancelled()) {
+			final Player player = (Player) event.getEntity();
+			final BendingPlayer bPlayer = BendingPlayer.getBendingPlayer(player);
 			if (CoreAbility.getAbility(player, EarthArmor.class) != null) {
 				final EarthArmor eartharmor = CoreAbility.getAbility(player, EarthArmor.class);
 				eartharmor.updateAbsorbtion();
+			}
+
+			//Check if AvatarState will save them from death, or if AvatarState should activate due to low health
+			if (AvatarState.activateLowHealth(bPlayer, event.getFinalDamage(), ((Player) event.getEntity()).getHealth() - event.getFinalDamage() < 0)) {
+				event.setDamage(0D);
+				event.setCancelled(true);
 			}
 		}
 	}
@@ -996,7 +1018,7 @@ public class PKListener implements Listener {
 	public void onPlayerDamageByPlayer(final EntityDamageByEntityEvent e) {
 		final Entity source = e.getDamager();
 		final Entity entity = e.getEntity();
-		if (BendingPlayer.isWorldDisabled(entity.getWorld())) {
+		if (BendingPlayer.isWorldDisabled(entity.getWorld()) || GeneralMethods.isFakeEvent(e)) {
 			return;
 		}
 
@@ -1297,6 +1319,12 @@ public class PKListener implements Listener {
 	public void onPlayerChangeWorld(final PlayerChangedWorldEvent event) {
 		PassiveManager.registerPassives(event.getPlayer());
 		BendingBoardManager.changeWorld(event.getPlayer());
+
+		//Revert TempArmor when swapping worlds due to some worlds having different inventories (Multiverse Inventories)
+		TempArmor armor = TempArmor.getVisibleTempArmor(event.getPlayer());
+		if (armor != null) {
+			armor.revert();
+		}
 	}
 
 	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -1416,11 +1444,6 @@ public class PKListener implements Listener {
 		if (ProjectKorra.isStatisticsEnabled()) {
 			Manager.getManager(StatisticsManager.class).store(player.getUniqueId());
 		}
-		if (bPlayer != null) {
-			if (ProjectKorra.isDatabaseCooldownsEnabled()) {
-				bPlayer.saveCooldowns();
-			}
-		}
 
 		Commands.invincible.remove(player.getName());
 
@@ -1447,6 +1470,9 @@ public class PKListener implements Listener {
 
 		Bukkit.getScheduler().runTaskLater(ProjectKorra.plugin, //Run 1 tick later so they actually are offline
 				() -> {
+					if (ProjectKorra.isDatabaseCooldownsEnabled()) {
+						bPlayer.saveCooldowns();
+					}
 					OfflineBendingPlayer converted = OfflineBendingPlayer.convertToOffline(bPlayer);
 					if (!converted.isOnline()) { //We test if they are still offline. If they relog by joining on a different client, they will be online now, and an error will be thrown otherwise.
 						converted.uncacheAfter(ConfigManager.defaultConfig.get().getLong("Properties.PlayerDataUnloadTime", 5 * 60 * 1000));
@@ -2052,6 +2078,66 @@ public class PKListener implements Listener {
 		}
 	}
 
+	@EventHandler
+	public void onTimeChange(WorldTimeEvent event) {
+		for (CoreAbility abil : CoreAbility.getAbilitiesByInstances()) {
+			if (abil instanceof WaterAbility || abil instanceof FireAbility) {
+				abil.recalculateAttributes();
+			}
+		}
+	}
+
+	@EventHandler(priority = EventPriority.LOW)
+	public void onAttributeRecalc(AbilityRecalculateAttributeEvent event) {
+		if (event.hasMarker(DayNightFactor.class) && event.getAbility().getLocation() != null) {
+			boolean day = FireAbility.isDay(event.getAbility().getLocation().getWorld());
+			boolean night = WaterAbility.isNight(event.getAbility().getLocation().getWorld());
+			if (event.getAbility() instanceof WaterAbility && night && event.getAbility().getPlayer().hasPermission("bending.water.nightfactor")) {
+				double factor = WaterAbility.getNightFactor();
+
+				DayNightFactor dayNightFactor = event.getMarker(DayNightFactor.class);
+				if (dayNightFactor.factor() != -1) factor = dayNightFactor.factor(); //If the factor isn't the default, use the one in the annotation
+
+				AttributeModifier modifier = dayNightFactor.invert() ? AttributeModifier.DIVISION : AttributeModifier.MULTIPLICATION;
+				AttributeModification mod = AttributeModification.of(modifier, factor, AttributeModification.PRIORITY_NORMAL,
+						AttributeModification.NIGHT_FACTOR);
+				event.addModification(mod);
+			} else if (event.getAbility() instanceof FireAbility && day && event.getAbility().getPlayer().hasPermission("bending.fire.dayfactor")) {
+				double factor = FireAbility.getDayFactor();
+
+				DayNightFactor dayNightFactor = event.getMarker(DayNightFactor.class);
+				if (dayNightFactor.factor() != -1) factor = dayNightFactor.factor(); //If the factor isn't the default, use the one in the annotation
+
+				AttributeModifier modifier = dayNightFactor.invert() ? AttributeModifier.DIVISION : AttributeModifier.MULTIPLICATION;
+				AttributeModification mod = AttributeModification.of(modifier, factor, AttributeModification.PRIORITY_NORMAL, AttributeModification.DAY_FACTOR);
+				event.addModification(mod);
+			}
+		}
+
+		//Blue fire has factors for a few attributes. But only do it for pure fire abilities and not combustion/lightning
+		if ((event.getAbility().getElement() == Element.FIRE || event.getAbility().getElement() == Element.BLUE_FIRE) && event.getAbility().getBendingPlayer().hasElement(Element.BLUE_FIRE) && event.getAbility().getPlayer().hasPermission("bending.fire.bluefirefactor")) {
+			if (event.getAttribute().equals(Attribute.DAMAGE)) {
+				double factor = BlueFireAbility.getDamageFactor();
+				event.addModification(AttributeModification.of(AttributeModifier.MULTIPLICATION, factor, AttributeModification.PRIORITY_NORMAL - 50, AttributeModification.BLUE_FIRE_DAMAGE));
+			} else if (event.getAttribute().equals(Attribute.COOLDOWN)) {
+				double factor = BlueFireAbility.getCooldownFactor();
+				event.addModification(AttributeModification.of(AttributeModifier.MULTIPLICATION, factor, AttributeModification.PRIORITY_NORMAL - 50, AttributeModification.BLUE_FIRE_COOLDOWN));
+			} else if (event.getAttribute().equals(Attribute.RANGE)) {
+				double factor = BlueFireAbility.getRangeFactor();
+				event.addModification(AttributeModification.of(AttributeModifier.MULTIPLICATION, factor, AttributeModification.PRIORITY_NORMAL - 50, AttributeModification.BLUE_FIRE_RANGE));
+			}
+		}
+
+		//AvatarState factors if the avatarstate is active
+		if (event.getAbility().getBendingPlayer().isAvatarState()) {
+			AttributeCache cache = CoreAbility.getAttributeCache(event.getAbility()).get(event.getAttribute());
+
+			if (cache != null && cache.getAvatarStateModifier().isPresent()) { //Check if there is a cached avatarstate modifier for this attribute
+				event.addModification(cache.getAvatarStateModifier().get());
+			}
+		}
+	}
+
 	@EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
 	public void onItemMerge(final ItemMergeEvent event) {
 		if (BendingPlayer.isWorldDisabled(event.getEntity().getWorld())) {
@@ -2092,7 +2178,8 @@ public class PKListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBendingSubElementChange(final PlayerChangeSubElementEvent event) {
-		final Player player = event.getTarget();
+		if (!event.isTargetOnline()) return;
+		final Player player = (Player) event.getTarget();
 		final BendingPlayer bPlayer = BendingPlayer.getBendingPlayer(player);
 		if (bPlayer == null) return;
 		BendingBoardManager.updateAllSlots(player);
@@ -2100,7 +2187,8 @@ public class PKListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onBindChange(final PlayerBindChangeEvent event) {
-		final Player player = event.getPlayer();
+		if (!event.isOnline()) return;
+		final Player player = (Player) event.getPlayer();
 		if (player == null) return;
 		if (event.isMultiAbility()) {
 			new BukkitRunnable() {
@@ -2135,12 +2223,29 @@ public class PKListener implements Listener {
 	@EventHandler
 	public void onPluginUnload(PluginDisableEvent event) {
 		RegionProtection.unloadPlugin((JavaPlugin) event.getPlugin());
-		BendingPlayer.HOOKS.remove((JavaPlugin) event.getPlugin());
+		BendingPlayer.BEND_HOOKS.remove((JavaPlugin) event.getPlugin());
+		BendingPlayer.BIND_HOOKS.remove((JavaPlugin) event.getPlugin());
 	}
 
 	@EventHandler
 	public void onWorldUnload(WorldUnloadEvent event) {
 		TempBlock.removeAllInWorld(event.getWorld());
+	}
+
+	@EventHandler
+	private void preventArmorSwap(PlayerInteractEvent event) {
+		//Prevents swapping armor pieces using right click while having TempArmor active, this will prevent Armor pieces from being duped/deleted.
+		if (event.getAction() == Action.LEFT_CLICK_AIR || event.getAction() == Action.LEFT_CLICK_BLOCK) return;
+		Player player = event.getPlayer();
+
+		if (!EnchantmentTarget.WEARABLE.includes(player.getInventory().getItemInMainHand())
+				&& !EnchantmentTarget.ARMOR.includes(player.getInventory().getItemInMainHand())){
+			return;
+		}
+
+		if (TempArmor.hasTempArmor(player)){
+			event.setCancelled(true);
+		}
 	}
 
 	public static HashMap<Player, Pair<String, Player>> getBendingPlayerDeath() {

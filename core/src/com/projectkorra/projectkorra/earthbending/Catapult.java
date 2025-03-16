@@ -72,10 +72,6 @@ public class Catapult extends EarthAbility {
 			return;
 		}
 
-		if (this.bPlayer.isAvatarState()) {
-			this.cooldown = getConfig().getLong("Abilities.Avatar.AvatarState.Earth.Catapult.Cooldown");
-		}
-
 		this.charging = sneak;
 		this.setFields();
 		this.start();

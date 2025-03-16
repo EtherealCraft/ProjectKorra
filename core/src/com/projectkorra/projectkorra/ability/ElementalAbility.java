@@ -41,6 +41,18 @@ public abstract class ElementalAbility extends CoreAbility {
 	private static final Set<String> SAND_BLOCKS = new HashSet<String>();
 	private static final Set<String> SNOW_BLOCKS = new HashSet<String>();
 
+	// Once 1.16.5 no longer becomes LTS, this becomes obsolete and
+	// we can remove the version check and reference these materials directly instead of doing standard lookups.
+	protected static final Material LIGHT = Material.getMaterial("LIGHT");
+	protected static final Set<Material> MUD_BLOCKS = getMudBlocks();
+	private static Set<Material> getMudBlocks() {
+		Set<Material> mudBlocks = new HashSet<>();
+		mudBlocks.add(Material.getMaterial("MUD"));
+		mudBlocks.add(Material.getMaterial("PACKED_MUD"));
+		mudBlocks.add(Material.getMaterial("MUDDY_MANGROVE_ROOTS"));
+		return mudBlocks;
+	}
+
 	static {
 		TRANSPARENT.clear();
 		for (final Material mat : Material.values()) {
@@ -77,7 +89,7 @@ public abstract class ElementalAbility extends CoreAbility {
 		ListIterator<String> iterator = new ArrayList<String>(configList).listIterator();
 		iterator.forEachRemaining(next -> {
 			if (next.startsWith("#")) {
-				NamespacedKey key = NamespacedKey.minecraft(next.replaceFirst("#", ""));
+				NamespacedKey key = NamespacedKey.fromString(next.replaceFirst("#", ""));
 				for (Material material : Bukkit.getTag(Tag.REGISTRY_BLOCKS, key, Material.class).getValues()) {
 					outputSet.add(material.toString());
 				}
@@ -97,7 +109,7 @@ public abstract class ElementalAbility extends CoreAbility {
 
 	public static boolean isAir(final Material material) {
 		return material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR ||
-				(GeneralMethods.getMCVersion() >= 1170 && material == Material.getMaterial("LIGHT"));
+				(GeneralMethods.getMCVersion() >= 1170 && material == LIGHT);
 	}
 
 	public static boolean isDay(final World world) {
@@ -106,7 +118,34 @@ public abstract class ElementalAbility extends CoreAbility {
 			return true;
 		}
 
-		return time >= 23500 || time <= 12500;
+		return time >= 23750 || time <= 12250;
+	}
+
+	public static boolean isDawn(final World world) {
+		final long time = world.getTime();
+		if (world.getEnvironment() == Environment.NETHER || world.getEnvironment() == Environment.THE_END) {
+			return false;
+		}
+
+		return time > 23250 && time < 23750;
+	}
+
+	public static boolean isDusk(final World world) {
+		final long time = world.getTime();
+		if (world.getEnvironment() == Environment.NETHER || world.getEnvironment() == Environment.THE_END) {
+			return false;
+		}
+
+		return time > 12250 && time < 12750;
+	}
+
+	public static boolean isNight(final World world) {
+		final long time = world.getTime();
+		if (world.getEnvironment() == Environment.NETHER || world.getEnvironment() == Environment.THE_END) {
+			return false;
+		}
+
+		return time >= 12750 && time <= 23250;
 	}
 
 	public static boolean isEarth(final Block block) {
@@ -169,6 +208,14 @@ public abstract class ElementalAbility extends CoreAbility {
 		return isMetal(block);
 	}
 
+	public static boolean isMud(final Block block) {
+		return block != null ? isMud(block.getType()) : false;
+	}
+
+	public static boolean isMud(final Material material) {
+		return GeneralMethods.getMCVersion() >= 1190 && MUD_BLOCKS.contains(material);
+	}
+
 	public static boolean isNegativeEffect(final PotionEffectType effect) {
 		for (final PotionEffectType effect2 : NEGATIVE_EFFECTS) {
 			if (effect2.equals(effect)) {
@@ -189,14 +236,7 @@ public abstract class ElementalAbility extends CoreAbility {
 		return false;
 	}
 
-	public static boolean isNight(final World world) {
-		final long time = world.getTime();
-		if (world.getEnvironment() == Environment.NETHER || world.getEnvironment() == Environment.THE_END) {
-			return false;
-		}
 
-		return time >= 12950 && time <= 23050;
-	}
 
 	public static boolean isPlant(final Block block) {
 		return block != null && isPlant(block.getType());

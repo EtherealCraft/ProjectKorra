@@ -1,9 +1,20 @@
 package com.projectkorra.projectkorra.firebending.combo;
 
+import com.projectkorra.projectkorra.BendingPlayer;
+import com.projectkorra.projectkorra.Element.SubElement;
+import com.projectkorra.projectkorra.GeneralMethods;
+import com.projectkorra.projectkorra.ability.CoreAbility;
+import com.projectkorra.projectkorra.ability.ElementalAbility;
+import com.projectkorra.projectkorra.ability.FireAbility;
+import com.projectkorra.projectkorra.command.Commands;
+import com.projectkorra.projectkorra.configuration.ConfigManager;
+import com.projectkorra.projectkorra.firebending.util.FireDamageTimer;
 import com.projectkorra.projectkorra.region.RegionProtection;
+import com.projectkorra.projectkorra.util.DamageHandler;
+import com.projectkorra.projectkorra.util.LightManager;
+import com.projectkorra.projectkorra.util.ParticleEffect;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-
 import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -24,6 +35,8 @@ import com.projectkorra.projectkorra.command.Commands;
 import com.projectkorra.projectkorra.firebending.util.FireDamageTimer;
 import com.projectkorra.projectkorra.util.DamageHandler;
 import com.projectkorra.projectkorra.util.ParticleEffect;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 /***
  * Is only here for legacy purposes. All fire combos used to use a form of this
@@ -87,6 +100,7 @@ public class FireComboStream extends BukkitRunnable {
 			this.remove();
 			return;
 		}
+
 		for (int i = 0; i < this.density; i++) {
 			if (this.useNewParticles) {
 				this.particleEffect.display(this.location, 1, this.spread, this.spread, this.spread);
@@ -94,6 +108,8 @@ public class FireComboStream extends BukkitRunnable {
 				this.location.getWorld().playEffect(this.location, Effect.MOBSPAWNER_FLAMES, 0, 15);
 			}
 		}
+
+		emitFirebendingLight(this.location);
 
 		if (GeneralMethods.checkDiagonalWall(this.location, this.direction)) {
 			this.remove();
@@ -117,6 +133,9 @@ public class FireComboStream extends BukkitRunnable {
 				if (entity instanceof LivingEntity && !entity.equals(this.coreAbility.getPlayer()) && !entity.isDead()) {
 					this.collision((LivingEntity) entity, this.direction, this.coreAbility);
 				}
+			}
+			for (Block b : GeneralMethods.getBlocksAroundPoint(this.location, this.collisionRadius)) {
+				FireAbility.dryWetBlocks(b, this.coreAbility, ThreadLocalRandom.current().nextInt(5) == 0);
 			}
 		}
 
@@ -241,6 +260,19 @@ public class FireComboStream extends BukkitRunnable {
 
 	public void setUseNewParticles(final boolean b) {
 		this.useNewParticles = b;
+	}
+
+	public void emitFirebendingLight(final Location location) {
+		if (!ConfigManager.defaultConfig.get().getBoolean("Properties.Fire.DynamicLight.Enabled")) return;
+
+		int brightness = ConfigManager.defaultConfig.get().getInt("Properties.Fire.DynamicLight.Brightness");
+		long keepAlive = ConfigManager.defaultConfig.get().getLong("Properties.Fire.DynamicLight.KeepAlive");
+
+		if (brightness < 1 || brightness > 15) {
+			throw new IllegalArgumentException("Properties.Fire.DynamicLight.Brightness must be between 1 and 15.");
+		}
+
+		LightManager.createLight(location).brightness(brightness).timeUntilFadeout(keepAlive).emit();
 	}
 
 	@Override
