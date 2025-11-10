@@ -19,7 +19,7 @@ public class ModernBottleFinder implements IBottleFinder {
             for (int i = aux; i < inventory.getSize(); i++) {
                 if (inventory.getItem(i) != null && inventory.getItem(i).getType() == Material.POTION && inventory.getItem(i).hasItemMeta()) {
                     final PotionMeta meta = (PotionMeta) inventory.getItem(i).getItemMeta();
-                    if (meta.getBasePotionType().equals(PotionType.WATER)) {
+                    if (meta != null && meta.getBasePotionType() != null && meta.getBasePotionType().equals(PotionType.WATER)) {
                         index = i;
                         break;
                     }
