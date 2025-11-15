@@ -165,12 +165,12 @@ public class IceBlast extends IceAbility {
 		DamageHandler.damageEntity(entity, this.damage, this);
 		if (entity instanceof Player) {
 			if (this.bPlayer.canBeSlowed()) {
-				final PotionEffect effect = new PotionEffect(PotionEffectType.SLOW, 70, 2);
+				final PotionEffect effect = new PotionEffect(PotionEffectType.SLOWNESS, 70, 2);
 				new TempPotionEffect(entity, effect);
 				this.bPlayer.slow(this.slowCooldown);
 			}
 		} else {
-			final PotionEffect effect = new PotionEffect(PotionEffectType.SLOW, 70, 2);
+			final PotionEffect effect = new PotionEffect(PotionEffectType.SLOWNESS, 70, 2);
 			new TempPotionEffect(entity, effect);
 		}
 		AirAbility.breakBreathbendingHold(entity);

@@ -176,7 +176,7 @@ public abstract class FireAbility extends ElementalAbility {
 				block.getWorld().playSound(block.getLocation(), Sound.BLOCK_FIRE_EXTINGUISH, 0.5F, 1);
 			}
 		} else if (isSnow(block)) {
-			block.getWorld().spawnParticle(Particle.BLOCK_DUST, block.getLocation().add(0.5, 0.5, 0.5), 2, 0.5, 0.5, 0.5, 0.1, Material.SNOW_BLOCK.createBlockData());
+			block.getWorld().spawnParticle(Particle.BLOCK, block.getLocation().add(0.5, 0.5, 0.5), 2, 0.5, 0.5, 0.5, 0.1, Material.SNOW_BLOCK.createBlockData());
 			block.setType(Material.AIR);
 
 			if (playSound) {
