@@ -3,7 +3,7 @@ package com.projectkorra.projectkorra.event;
 import com.google.common.primitives.Primitives;
 import com.projectkorra.projectkorra.ability.CoreAbility;
 import com.projectkorra.projectkorra.attribute.AttributeModification;
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.util.NumberConversions;
