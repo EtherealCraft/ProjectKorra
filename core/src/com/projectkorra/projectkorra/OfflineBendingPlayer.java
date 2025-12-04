@@ -65,7 +65,7 @@ public class OfflineBendingPlayer {
     /**
      * Queue of all the temporary elements, sorted by expiry time. Only for online players
      */
-    protected static final PriorityQueue<Pair<Player, Long>> TEMP_ELEMENTS = new PriorityQueue<>(Comparator.comparingLong(Pair<Player, Long>::getRight));
+    protected static final PriorityQueue<Pair<Player, Long>> TEMP_ELEMENTS = new PriorityQueue(Comparator.comparingLong(Pair<Player, Long>::getRight));
 
     /**
      * Map of all the players that are currently loading
@@ -105,27 +105,6 @@ public class OfflineBendingPlayer {
         this.lastAccessed = System.currentTimeMillis();
     }
 
-    public OfflineBendingPlayer(@NotNull OfflineBendingPlayer player) {
-        this.player = player.player;
-        this.uuid = player.uuid;
-        this.permaRemoved = player.permaRemoved;
-        this.toggled = player.toggled;
-        this.allPassivesToggled = player.allPassivesToggled;
-        this.loading = false;
-
-        this.elements.addAll(player.elements);
-        this.subelements.addAll(player.subelements);
-        this.tempElements.putAll(player.tempElements);
-        this.tempSubElements.putAll(player.tempSubElements);
-        this.abilities.putAll(player.abilities);
-        this.cooldowns.putAll(player.cooldowns);
-        this.toggledElements.addAll(player.toggledElements);
-        this.toggledPassives.addAll(player.toggledPassives);
-
-        this.currentSlot = player.currentSlot;
-        this.lastAccessed = System.currentTimeMillis();
-    }
-
     public OfflineBendingPlayer(@NotNull UUID playerUUID) {
         this(Bukkit.getOfflinePlayer(playerUUID));
     }
@@ -142,9 +121,8 @@ public class OfflineBendingPlayer {
         if (PLAYERS.get(uuid) != null) {
             OfflineBendingPlayer oBendingPlayer = PLAYERS.get(uuid); //Get cached instance
             if (offlinePlayer.isOnline() && !(oBendingPlayer instanceof BendingPlayer)) {
-                BendingPlayer bendingPlayer = convertToOnline(oBendingPlayer);
-                oBendingPlayer = bendingPlayer;
-                bendingPlayer.postLoad();
+                oBendingPlayer = convertToOnline(oBendingPlayer); //Convert to online instance
+                ((BendingPlayer)oBendingPlayer).postLoad();
             }
             if (!(oBendingPlayer instanceof BendingPlayer)) {
                 oBendingPlayer.lastAccessed = System.currentTimeMillis();
@@ -155,35 +133,35 @@ public class OfflineBendingPlayer {
 
         LOADING.put(uuid, future); //Put the future in the loading map
 
-        Runnable loadTask = () -> {
+        Runnable runnable = () -> {
             OfflineBendingPlayer bPlayer = new OfflineBendingPlayer(offlinePlayer);
             if (offlinePlayer.isOnline()) {
-                bPlayer = new BendingPlayer(offlinePlayer.getPlayer());
-                ONLINE_PLAYERS.put(uuid, (BendingPlayer) bPlayer);
+                bPlayer = new BendingPlayer(((Player)offlinePlayer));
+                ONLINE_PLAYERS.put(uuid, (BendingPlayer)bPlayer);
             }
+
             PLAYERS.put(uuid, bPlayer);
 
-            final ResultSet rs2 = DBConnection.sql.readQuery("SELECT * FROM pk_players WHERE uuid = '" + uuid + "'");
+            final ResultSet rs2 = DBConnection.sql.readQuery("SELECT * FROM pk_players WHERE uuid = '" + uuid.toString() + "'");
             try {
                 if (!rs2.next()) { // Data doesn't exist, we want a completely new player.
-                    DBConnection.sql.modifyQuery("INSERT INTO pk_players (uuid, player, slot1, slot2, slot3, slot4, slot5, slot6, slot7, slot8, slot9) VALUES ('" + uuid + "', '" + offlinePlayer.getName() + "', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null')");
+                    DBConnection.sql.modifyQuery("INSERT INTO pk_players (uuid, player, slot1, slot2, slot3, slot4, slot5, slot6, slot7, slot8, slot9) VALUES ('" + uuid.toString() + "', '" + offlinePlayer.getName() + "', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null', 'null')");
                     Bukkit.getScheduler().runTask(ProjectKorra.plugin, () -> ProjectKorra.log.info("Created new BendingPlayer for " + offlinePlayer.getName()));
                     OfflineBendingPlayer newPlayer;
                     if (offlinePlayer.isOnline()) {
-                        BendingPlayer onlinePlayer = new BendingPlayer(offlinePlayer.getPlayer());
-                        // Call postLoad() on the main thread and wait for it to complete
+                        newPlayer = new BendingPlayer((Player)offlinePlayer);
+                        //Call postLoad() on the main thread and wait for it to complete
                         Bukkit.getScheduler().callSyncMethod(ProjectKorra.plugin, () -> {
-                            onlinePlayer.postLoad();
+                            ((BendingPlayer)newPlayer).postLoad();
                             return true;
                         }).get();
-                        ONLINE_PLAYERS.put(uuid, onlinePlayer);
-                        newPlayer = onlinePlayer;
+                        ONLINE_PLAYERS.put(uuid, (BendingPlayer) newPlayer);
                     } else {
                         newPlayer = new OfflineBendingPlayer(offlinePlayer);
                     }
-
                     PLAYERS.put(uuid, newPlayer);
-                    Bukkit.getScheduler().callSyncMethod(ProjectKorra.plugin, () -> {
+                    Bukkit.getScheduler().callSyncMethod(ProjectKorra.plugin, ()
+                            -> {
                         Bukkit.getPluginManager().callEvent(new BendingPlayerLoadEvent(newPlayer));
                         return true;
                     });
@@ -477,7 +455,7 @@ public class OfflineBendingPlayer {
             }
         };
 
-        Bukkit.getScheduler().runTaskAsynchronously(ProjectKorra.plugin, loadTask);
+        Bukkit.getScheduler().runTaskAsynchronously(ProjectKorra.plugin, runnable);
 
         return future;
     }
@@ -573,7 +551,7 @@ public class OfflineBendingPlayer {
                         hasAddon = true;
                         elements.append(";");
                     }
-                    elements.append(element.getName()).append(",");
+                    elements.append(element.getName() + ",");
                 }
             }
 
@@ -581,7 +559,7 @@ public class OfflineBendingPlayer {
                 elements.append("NULL");
             }
 
-            DBConnection.sql.modifyQuery("UPDATE pk_players SET element = '" + elements + "' WHERE uuid = '" + uuid + "'");
+            DBConnection.sql.modifyQuery("UPDATE pk_players SET element = '" + elements.toString() + "' WHERE uuid = '" + uuid + "'");
         }, 1L);
     }
 
@@ -864,7 +842,11 @@ public class OfflineBendingPlayer {
      * @return true if the cooldown map contains the ability
      */
     public boolean isOnCooldown(final String ability) {
-        return this.cooldowns.containsKey(ability);
+        if (this.cooldowns.containsKey(ability)) {
+            return true;
+        }
+
+        return false;
     }
 
     public void addCooldown(final Ability ability, final long cooldown, final boolean database) {
@@ -891,7 +873,7 @@ public class OfflineBendingPlayer {
      * Applies a cooldown for an ability to the current BendingPlayer.
      * @param ability The ability to apply the cooldown to
      * @param cooldown The cooldown time
-     * @param database Whether to save the cooldown to the database
+     * @param database Whether or not to save the cooldown to the database
      */
     public void addCooldown(final String ability, final long cooldown, final boolean database) {
         if (cooldown <= 0) {
@@ -1281,12 +1263,24 @@ public class OfflineBendingPlayer {
     }
 
     protected static BendingPlayer convertToOnline(@NotNull OfflineBendingPlayer offlineBendingPlayer) {
-        Player player = offlineBendingPlayer.player.getPlayer();
+        Player player = Bukkit.getPlayer(offlineBendingPlayer.getUUID());
         if (player == null) {
             return null;
         }
+        BendingPlayer bendingPlayer = new BendingPlayer(player);
+        bendingPlayer.abilities = offlineBendingPlayer.abilities;
+        bendingPlayer.elements.addAll(offlineBendingPlayer.elements);
+        bendingPlayer.subelements.addAll(offlineBendingPlayer.subelements);
+        bendingPlayer.tempElements.putAll(offlineBendingPlayer.tempElements);
+        bendingPlayer.tempSubElements.putAll(offlineBendingPlayer.tempSubElements);
+        bendingPlayer.toggledElements.addAll(offlineBendingPlayer.toggledElements);
+        bendingPlayer.toggledPassives.addAll(offlineBendingPlayer.toggledPassives);
+        bendingPlayer.toggled = offlineBendingPlayer.toggled;
+        bendingPlayer.allPassivesToggled = offlineBendingPlayer.allPassivesToggled;
+        bendingPlayer.permaRemoved = offlineBendingPlayer.permaRemoved;
+        bendingPlayer.cooldowns.putAll(offlineBendingPlayer.cooldowns);
+        bendingPlayer.loading = false;
 
-        BendingPlayer bendingPlayer = new BendingPlayer(offlineBendingPlayer);
         if (offlineBendingPlayer.uncache != null) {
             offlineBendingPlayer.uncache.cancel();
         }
@@ -1305,7 +1299,19 @@ public class OfflineBendingPlayer {
     protected static OfflineBendingPlayer convertToOffline(@NotNull BendingPlayer bendingPlayer) {
         if (bendingPlayer.getPlayer() != null && bendingPlayer.getPlayer().isOnline()) return bendingPlayer;
 
-        OfflineBendingPlayer offlineBendingPlayer = new OfflineBendingPlayer(bendingPlayer);
+        OfflineBendingPlayer offlineBendingPlayer = new OfflineBendingPlayer(bendingPlayer.getPlayer());
+        offlineBendingPlayer.abilities = bendingPlayer.abilities;
+        offlineBendingPlayer.elements.addAll(bendingPlayer.elements);
+        offlineBendingPlayer.subelements.addAll(bendingPlayer.subelements);
+        offlineBendingPlayer.tempElements.putAll(bendingPlayer.tempElements);
+        offlineBendingPlayer.tempSubElements.putAll(bendingPlayer.tempSubElements);
+        offlineBendingPlayer.toggledElements.addAll(bendingPlayer.toggledElements);
+        offlineBendingPlayer.toggledPassives.addAll(bendingPlayer.toggledPassives);
+        offlineBendingPlayer.toggled = bendingPlayer.toggled;
+        offlineBendingPlayer.allPassivesToggled = bendingPlayer.allPassivesToggled;
+        offlineBendingPlayer.permaRemoved = bendingPlayer.permaRemoved;
+        offlineBendingPlayer.cooldowns.putAll(bendingPlayer.cooldowns);
+        offlineBendingPlayer.loading = false;
         offlineBendingPlayer.lastAccessed = System.currentTimeMillis();
 
         if (bendingPlayer.getPlayer() == null || !bendingPlayer.getPlayer().isOnline()) ONLINE_PLAYERS.remove(bendingPlayer.getUUID());
@@ -1353,61 +1359,64 @@ public class OfflineBendingPlayer {
      * @return true If the element was added successfully
      */
     public boolean addTempElement(@Nullable Element element, @Nullable CommandSender sender, long time) {
-        if (element == null) { // All elements
+        if (element == null) { //All elements
             boolean added = false;
-            for (Element other : Element.getAllElements()) {
-                if (other != Element.AVATAR) {
-                    added = addTempElement(other, sender, time) || added;
-                }
+            for (Element e1 : Element.getAllElements()) {
+                if (e1.equals(Element.AVATAR)) continue;
+                if (addTempElement(e1, sender, time)) added = true;
             }
             return added;
         }
 
-        SubElement subElement = element instanceof SubElement sub ? sub : null;
+        boolean sub = element instanceof SubElement;
+
         long expiry = time + System.currentTimeMillis();
 
         //Check the event isn't cancelled
-        Cancellable event = subElement != null ? new PlayerChangeSubElementEvent(sender, this.player, subElement, PlayerChangeSubElementEvent.Result.TEMP_ADD) :
+        Cancellable event = sub ? new PlayerChangeSubElementEvent(sender, this.player, (SubElement) element, PlayerChangeSubElementEvent.Result.TEMP_ADD) :
                 new PlayerChangeElementEvent(sender, this.player, element, PlayerChangeElementEvent.Result.TEMP_ADD);
         Bukkit.getPluginManager().callEvent((Event) event);
         if (event.isCancelled()) return false;
 
-        if (subElement != null) {
-            this.getTempSubElements().put(subElement, expiry);
+        if (element instanceof SubElement) {
+            this.getTempSubElements().put((SubElement) element, expiry);
         } else {
             this.getTempElements().put(element, expiry);
 
-            if (this instanceof BendingPlayer bPlayer) {
+            if (this.isOnline()) {
                 if (element == Element.AVATAR) { //Give all subs for all parent elements marked as avatar elements
-                    for (final Element avatarElement : Element.getAllElements()) {
-                        if (avatarElement.equals(Element.AVATAR) || !avatarElement.isAvatarElement) continue;
-                        addTempElementsSubs(avatarElement, sender, bPlayer);
+                    for (final Element e : Element.getAllElements()) {
+                        if (e.equals(Element.AVATAR)) continue;
+                        if (!e.isAvatarElement()) continue;
+
+                        for (final SubElement subElement : Element.getSubElements(e)) {
+                            if (((BendingPlayer)this).hasSubElementPermission(subElement) && !this.getSubElements().contains(subElement)) {
+                                PlayerChangeSubElementEvent subEvent = new PlayerChangeSubElementEvent(sender, this.player, subElement, PlayerChangeSubElementEvent.Result.TEMP_PARENT_ADD);
+                                Bukkit.getPluginManager().callEvent(subEvent);
+                                if (subEvent.isCancelled()) continue; //Continue for subs which shouldn't be added due to the event cancelling
+
+                                this.getTempSubElements().put(subElement, -1L); //Set the expiry to -1 to indicate that the time is linked to the parent element
+                            }
+                        }
                     }
                 } else { //Not the avatar element
-                    addTempElementsSubs(element, sender, bPlayer);
+                    for (final SubElement subElement : Element.getSubElements(element)) {
+                        if (((BendingPlayer) this).hasSubElementPermission(subElement) && !this.getSubElements().contains(subElement)) {
+                            PlayerChangeSubElementEvent subEvent = new PlayerChangeSubElementEvent(sender, this.player, subElement, PlayerChangeSubElementEvent.Result.TEMP_PARENT_ADD);
+                            Bukkit.getPluginManager().callEvent(subEvent);
+                            if (subEvent.isCancelled()) continue; //Continue for subs which shouldn't be added due to the event cancelling
+
+                            this.getTempSubElements().put(subElement, -1L); //Set the expiry to -1 to indicate that the time is linked to the parent element
+                        }
+                    }
                 }
             }
         }
 
-        if (this instanceof BendingPlayer bPlayer) {
-            bPlayer.recalculateTempElements(false);
-        } else {
-            saveTempElements();
-        }
+        if (isOnline()) ((BendingPlayer) this).recalculateTempElements(false);
+        else saveTempElements();
 
         return true;
-    }
-
-    private void addTempElementsSubs(@NotNull Element element, @Nullable CommandSender sender, BendingPlayer bPlayer) {
-        for (final SubElement sub : Element.getSubElements(element)) {
-            if (bPlayer.hasSubElementPermission(sub) && !this.getSubElements().contains(sub)) {
-                PlayerChangeSubElementEvent subEvent = new PlayerChangeSubElementEvent(sender, this.player, sub, PlayerChangeSubElementEvent.Result.TEMP_PARENT_ADD);
-                Bukkit.getPluginManager().callEvent(subEvent);
-                if (subEvent.isCancelled()) continue; //Continue for subs which shouldn't be added due to the event cancelling
-
-                this.getTempSubElements().put(sub, -1L); //Set the expiry to -1 to indicate that the time is linked to the parent element
-            }
-        }
     }
 
     /**
@@ -1419,42 +1428,41 @@ public class OfflineBendingPlayer {
      * @return true If the element expiry was successfully set
      */
     public boolean setTempElement(@Nullable Element element, @Nullable CommandSender sender, long time) {
-        if (element == null) { // All elements
+        if (element == null) { //All elements
             boolean added = false;
-            for (Element other : Element.getAllElements()) {
-                if (other != Element.AVATAR) {
-                    added = setTempElement(other, sender, time) || added;
-                }
+            for (Element e1 : Element.getAllElements()) {
+                if (e1.equals(Element.AVATAR)) continue;
+                if (setTempElement(e1, sender, time)) added = true;
             }
             return added;
         }
 
-        SubElement subElement = element instanceof SubElement sub ? sub : null;
+        boolean sub = element instanceof SubElement;
+
         boolean remove = time == 0 || (this.hasTempElement(element) && this.getTempElementRelativeTime(element) <= time);
         boolean add = time > 0 && !this.hasTempElement(element);
+
         long expiry = time + System.currentTimeMillis();
 
         if (add || remove) {
             //Check the event isn't cancelled
-            Cancellable event = subElement != null ? new PlayerChangeSubElementEvent(sender, this.player, subElement, add ? PlayerChangeSubElementEvent.Result.TEMP_ADD : PlayerChangeSubElementEvent.Result.TEMP_REMOVE)
-                    : new PlayerChangeElementEvent(sender, this.player, element, add ? PlayerChangeElementEvent.Result.TEMP_ADD : PlayerChangeElementEvent.Result.TEMP_REMOVE);
+            Cancellable event = sub ? new PlayerChangeSubElementEvent(sender, this.player, (SubElement) element, add ? PlayerChangeSubElementEvent.Result.TEMP_ADD : PlayerChangeSubElementEvent.Result.TEMP_REMOVE) :
+                    new PlayerChangeElementEvent(sender, this.player, element, add ? PlayerChangeElementEvent.Result.TEMP_ADD : PlayerChangeElementEvent.Result.TEMP_REMOVE);
             Bukkit.getPluginManager().callEvent((Event) event);
             if (event.isCancelled()) return false;
 
-            return add ? this.removeTempElement(element, sender) : this.addTempElement(element, sender, time);
+            if (add) return this.addTempElement(element, sender, time);
+            else return this.removeTempElement(element, sender);
         }
 
-        if (subElement != null) {
-            this.getTempSubElements().put(subElement, expiry);
+        if (element instanceof SubElement) {
+            this.getTempSubElements().put((SubElement) element, expiry);
         } else {
             this.getTempElements().put(element, expiry);
         }
 
-        if (this instanceof BendingPlayer bPlayer) {
-            bPlayer.recalculateTempElements(false);
-        } else {
-            saveTempElements();
-        }
+        if (isOnline()) ((BendingPlayer) this).recalculateTempElements(false);
+        else saveTempElements();
 
         return true;
     }
@@ -1480,74 +1488,58 @@ public class OfflineBendingPlayer {
 
         if (!this.hasTempElement(element)) return false;
 
-        SubElement subElement = element instanceof SubElement sub ? sub : null;
-        BendingPlayer online = this instanceof BendingPlayer bPlayer ? bPlayer : null;
-
-        // Check the event isn't cancelled
-        Cancellable event = subElement != null
-                ? new PlayerChangeSubElementEvent(sender, player, subElement, PlayerChangeSubElementEvent.Result.TEMP_REMOVE)
-                : new PlayerChangeElementEvent(sender, player, element, PlayerChangeElementEvent.Result.TEMP_REMOVE);
+        //Check the event isn't cancelled
+        Cancellable event = element instanceof SubElement ? new PlayerChangeSubElementEvent(sender, this.getPlayer(), (SubElement) element, PlayerChangeSubElementEvent.Result.TEMP_REMOVE) :
+                new PlayerChangeElementEvent(sender, this.getPlayer(), element, PlayerChangeElementEvent.Result.TEMP_REMOVE);
         Bukkit.getPluginManager().callEvent((Event) event);
-        if (event.isCancelled()) {
-            return false;
-        }
+        if (event.isCancelled()) return false;
 
-        if (subElement != null) {
-            if (online != null) {
-                tempSubElements.remove(element);
-            } else {
-                // Mark it to be removed when the player logs in next. Allowing
-                // them to see that it was removed when they were offline
-                tempSubElements.put(subElement, 0L);
+        if (element instanceof SubElement) {
+            if (this.isOnline()) {
+                this.getTempSubElements().remove(element);
+            } else {										    	        	//Mark it to be removed when the player logs in next. Allows
+                this.getTempSubElements().put((SubElement) element, 0L); 	//the player to see that it was removed when they were offline
             }
         } else { //For parent elements
-            if (online != null) {
-                tempElements.remove(element);
-            } else {
-                // Mark it to be removed when the player logs in next. Allowing
-                // them to see that it was removed when they were offline
-                tempElements.put(element, 0L);
+            if (this.isOnline()) {
+                this.getTempElements().remove(element);
+            } else {										    	//Mark it to be removed when the player logs in next. Allows
+                this.getTempElements().put(element, 0L); 		//the player to see that it was removed when they were offline
             }
 
             if (element == Element.AVATAR) {
-                Iterator<SubElement> subIterator1 = tempSubElements.keySet().iterator();
+                Iterator<SubElement> subIterator1 = this.getTempSubElements().keySet().iterator();
                 SubElement s1;
                 while (subIterator1.hasNext() && (s1 = subIterator1.next()) != null) {
-                    // Only remove if the sub-element is connected to the parent element's time and is an avatar element
-                    if (tempSubElements.get(s1) != -1L || !s1.getParentElement().isAvatarElement()) {
-                        continue;
-                    }
+                    //Only remove if the subelement is connected to the parent element's time and is an avatar element
+                    if (this.getTempSubElements().get(s1) != -1L || !s1.getParentElement().isAvatarElement()) continue;
 
-                    if (!hasTempElement(s1.getParentElement())) {
-                        PlayerChangeSubElementEvent subEvent = new PlayerChangeSubElementEvent(sender, player, s1, PlayerChangeSubElementEvent.Result.TEMP_PARENT_REMOVE);
+                    if (!this.hasTempElement(s1.getParentElement())) {
+                        PlayerChangeSubElementEvent subEvent = new PlayerChangeSubElementEvent(sender, this.getPlayer(), s1, PlayerChangeSubElementEvent.Result.TEMP_PARENT_REMOVE);
                         Bukkit.getPluginManager().callEvent(subEvent);
-                        // Skip sub elements not to be removed due to the event
-                        if (!subEvent.isCancelled()) {
-                            subIterator1.remove();
-                        }
+                        if (subEvent.isCancelled()) continue; //Continue for subs which shouldn't be added due to the event cancelling
+
+                        subIterator1.remove(); //Remove the subelement
                     }
                 }
             } else {
-                // Remove all subs that are tied to the parent element
-                for (SubElement tempSub : tempSubElements.keySet()) {
-                    long expiry = tempSubElements.get(tempSub);
-                    if (tempSub.childOf(element) && expiry == -1L) { // If the sub expiry is linked to the parent element
-                        PlayerChangeSubElementEvent subEvent = new PlayerChangeSubElementEvent(sender, player, tempSub, PlayerChangeSubElementEvent.Result.TEMP_PARENT_REMOVE);
+                //Remove all subs that are tied to the parent element
+                for (SubElement tempSub : this.getTempSubElements().keySet()) {
+                    long expiry = this.getTempSubElements().get(tempSub);
+
+                    if (tempSub.getParentElement().equals(element) && expiry == -1L) { //If the sub expiry is linked to the parent element
+                        PlayerChangeSubElementEvent subEvent = new PlayerChangeSubElementEvent(sender, this.getPlayer(), tempSub, PlayerChangeSubElementEvent.Result.TEMP_PARENT_REMOVE);
                         Bukkit.getPluginManager().callEvent(subEvent);
-                        // Skip sub elements not to be removed due to the event
-                        if (!subEvent.isCancelled()) {
-                            tempSubElements.remove(tempSub);
-                        }
+                        if (subEvent.isCancelled()) continue; //Continue for subs which shouldn't be added due to the event cancelling
+
+                        this.getTempSubElements().remove(tempSub);
                     }
                 }
             }
         }
 
-        if (online != null) {
-            online.recalculateTempElements(false);
-        } else {
-            saveTempElements();
-        }
+        if (isOnline()) ((BendingPlayer) this).recalculateTempElements(false);
+        else saveTempElements();
 
         return true;
     }
