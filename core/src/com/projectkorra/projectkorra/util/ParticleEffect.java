@@ -153,7 +153,7 @@ public enum ParticleEffect {
 	 * @param extra extra data to affect the particle, usually affects speed or does nothing
 	 */
 	public void display(Location loc, int amount, double offsetX, double offsetY, double offsetZ, double extra) {
-		if (particle.equals(Particle.EFFECT)) {
+		if (particle.equals(Particle.EFFECT) || particle.equals(Particle.INSTANT_EFFECT)) {
 			loc.getWorld().spawnParticle(particle, loc, amount, offsetX, offsetY, offsetZ, extra, new Particle.Spell(Color.WHITE, 1), true);
 		} else {
 			loc.getWorld().spawnParticle(particle, loc, amount, offsetX, offsetY, offsetZ, extra, null, true);
