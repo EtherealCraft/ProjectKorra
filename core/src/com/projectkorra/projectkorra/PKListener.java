@@ -948,7 +948,7 @@ public class PKListener implements Listener {
 					new Shockwave(player, true);
 				} else if (bPlayer.getBoundAbilityName().equalsIgnoreCase("Catapult")) {
 					if (ConfigManager.defaultConfig.get().getBoolean("Abilities.Earth.EarthPillars.Enabled")) {
-						if (bPlayer.canBend(CoreAbility.getAbility(EarthPillars.class))) {
+						if (bPlayer.canBendIgnoreBinds(CoreAbility.getAbility(EarthPillars.class))) {
 							new EarthPillars(player, true);
 						}
 					}
