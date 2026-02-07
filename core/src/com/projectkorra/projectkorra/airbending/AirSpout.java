@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -119,7 +120,9 @@ public class AirSpout extends AirAbility {
 		final Block standingblock = this.player.getLocation().getBlock();
 		for (int i = 0; i <= this.height + 5; i++) {
 			final Block block = standingblock.getRelative(BlockFace.DOWN, i);
-			if (GeneralMethods.isSolid(block) || ElementalAbility.isWater(block)) {
+			if (block.getType().equals(Material.SCAFFOLDING)) {
+				return block;
+			} else if (GeneralMethods.isSolid(block) || ElementalAbility.isWater(block)) {
 				return block;
 			}
 		}
