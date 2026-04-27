@@ -10,10 +10,7 @@ import com.projectkorra.projectkorra.ability.CoreAbility;
 import com.projectkorra.projectkorra.attribute.AttributeCache;
 import com.projectkorra.projectkorra.attribute.AttributeModification;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -71,7 +68,7 @@ public class AvatarState extends AvatarAbility {
 		this.recalculateAttributes();
 
 		if (showParticles) {
-			player.getWorld().spawnParticle(Particle.FLASH, player.getLocation().add(0, 0.8, 0), 1, 0, 0, 0);
+			player.getWorld().spawnParticle(Particle.FLASH, player.getLocation().add(0, 0.8, 0), 1, Color.fromBGR(170, 56, 240));
 
 
 			Random rand = new Random();
