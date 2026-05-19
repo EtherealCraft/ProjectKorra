@@ -1746,6 +1746,7 @@ public class ConfigManager {
 			config.addDefault("Abilities.Chi.WarriorStance.Cooldown", 0);
 			config.addDefault("Abilities.Chi.WarriorStance.Duration", 0);
 			config.addDefault("Abilities.Chi.WarriorStance.Strength", 1);
+			config.addDefault("Abilities.Chi.WarriorStance.Slowness", 1);
 			config.addDefault("Abilities.Chi.WarriorStance.Resistance", -3);
 
 			config.addDefault("Abilities.Chi.QuickStrike.Enabled", true);

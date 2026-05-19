@@ -2,6 +2,7 @@ package com.projectkorra.projectkorra.chiblocking;
 
 import com.projectkorra.projectkorra.BendingPlayer;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
@@ -15,6 +16,8 @@ import com.projectkorra.projectkorra.airbending.Suffocate;
 import com.projectkorra.projectkorra.attribute.Attribute;
 import com.projectkorra.projectkorra.command.Commands;
 import com.projectkorra.projectkorra.util.MovementHandler;
+
+import java.util.Random;
 
 public class Paralyze extends ChiAbility {
 
@@ -63,6 +66,8 @@ public class Paralyze extends ChiAbility {
 				Suffocate.remove((Player) entity);
 			}
 		}
+		Random rand = new Random();
+		entity.getWorld().spawnParticle(Particle.ENCHANTED_HIT, entity.getLocation(), 10, rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
 		final MovementHandler mh = new MovementHandler((LivingEntity) entity, CoreAbility.getAbility(Paralyze.class));
 		mh.stopWithDuration(this.duration / 1000 * 20, Element.CHI.getColor() + "* Paralyzed *");
 		entity.getWorld().playSound(entity.getLocation(), Sound.ENTITY_ENDER_DRAGON_HURT, 2, 0);

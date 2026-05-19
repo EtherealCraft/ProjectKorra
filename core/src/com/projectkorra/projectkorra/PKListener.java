@@ -1103,6 +1103,10 @@ public class PKListener implements Listener {
 			}
 
 			if (e.getCause() == DamageCause.ENTITY_ATTACK) {
+				if (sourceBPlayer.canCurrentlyBendWithWeapons() && sourceBPlayer.getBoundAbilityName() != null) {
+					ComboManager.addComboAbility(sourcePlayer, ClickType.LEFT_CLICK_ENTITY);
+				}
+
 				PlayerSwingEvent swingEvent = new PlayerSwingEvent((Player)e.getDamager()); //Allow addons to handle a swing without
 				Bukkit.getPluginManager().callEvent(swingEvent);                       		//needing to repeat the checks above themselves
 				if (swingEvent.isCancelled()) {

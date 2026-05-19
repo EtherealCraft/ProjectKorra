@@ -22,6 +22,7 @@ public class WarriorStance extends ChiAbility implements StanceAbility {
 	private int strength;
 	@Attribute("Resistance")
 	private int resistance;
+	private int slowness;
 
 	public WarriorStance(final Player player) {
 		super(player);
@@ -32,6 +33,7 @@ public class WarriorStance extends ChiAbility implements StanceAbility {
 		this.duration = getConfig().getLong("Abilities.Chi.WarriorStance.Duration");
 		this.strength = getConfig().getInt("Abilities.Chi.WarriorStance.Strength") - 1;
 		this.resistance = getConfig().getInt("Abilities.Chi.WarriorStance.Resistance"); //intended to be negative
+		this.slowness = getConfig().getInt("Abilities.Chi.WarriorStance.Slowness") - 1;
 
 		final StanceAbility stance = this.bPlayer.getStance();
 		if (stance instanceof CoreAbility) {
@@ -61,6 +63,9 @@ public class WarriorStance extends ChiAbility implements StanceAbility {
 		}
 		if (!this.player.hasPotionEffect(PotionEffectType.STRENGTH) || this.player.getPotionEffect(PotionEffectType.STRENGTH).getAmplifier() < this.strength || (this.player.getPotionEffect(PotionEffectType.STRENGTH).getAmplifier() == this.strength && this.player.getPotionEffect(PotionEffectType.STRENGTH).getDuration() == 1)) {
 			this.player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 10, this.strength, true, false), true);
+		}
+		if (!this.player.hasPotionEffect(PotionEffectType.SLOWNESS) || this.player.getPotionEffect(PotionEffectType.SLOWNESS).getAmplifier() < this.slowness || (this.player.getPotionEffect(PotionEffectType.SLOWNESS).getAmplifier() == this.slowness && this.player.getPotionEffect(PotionEffectType.SLOWNESS).getDuration() == 1)) {
+			this.player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 10, this.slowness, true, false), true);
 		}
 	}
 
