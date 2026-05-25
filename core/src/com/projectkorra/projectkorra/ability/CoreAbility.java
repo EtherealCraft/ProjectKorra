@@ -230,9 +230,11 @@ public abstract class CoreAbility implements Ability {
 			}
 		}
 
-		for (AttributeCache cache : ATTRIBUTE_FIELDS.get(this.getClass()).values()) {
-			cache.getInitialValues().remove(this);
-			cache.getCurrentModifications().remove(this);
+		if (ATTRIBUTE_FIELDS.get(this.getClass()) != null) {
+			for (AttributeCache cache : ATTRIBUTE_FIELDS.get(this.getClass()).values()) {
+				cache.getInitialValues().remove(this);
+				cache.getCurrentModifications().remove(this);
+			}
 		}
 
 		if (INSTANCES_BY_CLASS.containsKey(this.getClass())) {
@@ -984,6 +986,10 @@ public abstract class CoreAbility implements Ability {
 
 		if (!attributeValuesCached) { //Cache initial values
 			try {
+				if (ATTRIBUTE_FIELDS.get(this.getClass()) == null) {
+					recalculatingAttributes = false;
+					return;
+				}
 				for (AttributeCache cache : ATTRIBUTE_FIELDS.get(this.getClass()).values()) { //Get all attributes for this ability and cache initial values
 					cache.getInitialValues().put(this, cache.getField().get(this));
 				}
