@@ -58,13 +58,25 @@ public class WarriorStance extends ChiAbility implements StanceAbility {
 			return;
 		}
 
-		if (!this.player.hasPotionEffect(PotionEffectType.RESISTANCE) || this.player.getPotionEffect(PotionEffectType.RESISTANCE).getAmplifier() > this.resistance || (this.player.getPotionEffect(PotionEffectType.RESISTANCE).getAmplifier() == this.resistance && this.player.getPotionEffect(PotionEffectType.RESISTANCE).getDuration() == 1)) { //special case for negative resistance
+		if (!this.player.hasPotionEffect(PotionEffectType.RESISTANCE)
+				|| this.player.getPotionEffect(PotionEffectType.RESISTANCE).getAmplifier() > this.resistance
+				|| (this.player.getPotionEffect(PotionEffectType.RESISTANCE).getAmplifier() == this.resistance
+				&& this.player.getPotionEffect(PotionEffectType.RESISTANCE).getDuration() == 1)
+		) { //special case for negative resistance
 			this.player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 10, this.resistance, true, false), true);
 		}
-		if (!this.player.hasPotionEffect(PotionEffectType.STRENGTH) || this.player.getPotionEffect(PotionEffectType.STRENGTH).getAmplifier() < this.strength || (this.player.getPotionEffect(PotionEffectType.STRENGTH).getAmplifier() == this.strength && this.player.getPotionEffect(PotionEffectType.STRENGTH).getDuration() == 1)) {
+		if (!this.player.hasPotionEffect(PotionEffectType.STRENGTH)
+				|| this.player.getPotionEffect(PotionEffectType.STRENGTH).getAmplifier() < this.strength
+				|| (this.player.getPotionEffect(PotionEffectType.STRENGTH).getAmplifier() == this.strength
+				&& this.player.getPotionEffect(PotionEffectType.STRENGTH).getDuration() == 1)
+		) {
 			this.player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 10, this.strength, true, false), true);
 		}
-		if (!this.player.hasPotionEffect(PotionEffectType.SLOWNESS) || this.player.getPotionEffect(PotionEffectType.SLOWNESS).getAmplifier() < this.slowness || (this.player.getPotionEffect(PotionEffectType.SLOWNESS).getAmplifier() == this.slowness && this.player.getPotionEffect(PotionEffectType.SLOWNESS).getDuration() == 1)) {
+		if (!this.player.hasPotionEffect(PotionEffectType.SLOWNESS)
+				|| this.player.getPotionEffect(PotionEffectType.SLOWNESS).getAmplifier() < this.slowness
+				|| (this.player.getPotionEffect(PotionEffectType.SLOWNESS).getAmplifier() == this.slowness
+				&& this.player.getPotionEffect(PotionEffectType.SLOWNESS).getDuration() == 1)
+		) {
 			this.player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 10, this.slowness, true, false), true);
 		}
 	}

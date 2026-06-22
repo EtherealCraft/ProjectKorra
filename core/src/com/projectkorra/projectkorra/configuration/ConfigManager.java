@@ -5,6 +5,7 @@ import com.projectkorra.projectkorra.GeneralMethods;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.block.Biome;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.EntityType;
 
@@ -691,19 +692,16 @@ public class ConfigManager {
 			iceBlocks.add("#ice");
 
 			/* Dry biomes for FrostBreath */
-			final ArrayList<String> dryBiomes = new ArrayList<String>();
-			dryBiomes.add("DESERT");
-			dryBiomes.add("BADLANDS");
-			dryBiomes.add("ERODED_BADLANDS");
-			dryBiomes.add("WOODED_BADLANDS");
-			dryBiomes.add("SAVANNA");
-			dryBiomes.add("SAVANNA_PLATEAU");
-			dryBiomes.add("WINDSWEPT_SAVANNA");
-			dryBiomes.add("BASALT_DELTAS");
-			dryBiomes.add("CRIMSON_FOREST");
-			dryBiomes.add("WARPED_FOREST");
-			dryBiomes.add("NETHER_WASTES");
-			dryBiomes.add("SOUL_SAND_VALLEY");
+			final List<String> dryBiomes = new ArrayList<>();
+			Biome[] biomes = {
+					Biome.DESERT, Biome.BADLANDS, Biome.ERODED_BADLANDS, Biome.WOODED_BADLANDS,
+					Biome.SAVANNA, Biome.SAVANNA_PLATEAU, Biome.WINDSWEPT_SAVANNA, Biome.BASALT_DELTAS,
+					Biome.CRIMSON_FOREST, Biome.WARPED_FOREST, Biome.NETHER_WASTES, Biome.SOUL_SAND_VALLEY
+			};
+
+			for (Biome biome : biomes) {
+				dryBiomes.add(((org.bukkit.Keyed) biome).getKey().getKey());
+			}
 
 			final ArrayList<String> plantBlocks = new ArrayList<String>();
 			plantBlocks.add("#bee_growables");

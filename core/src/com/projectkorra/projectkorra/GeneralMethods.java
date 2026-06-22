@@ -921,14 +921,14 @@ public class GeneralMethods {
 	public static BlockData getWaterData(final int level) {
 		return Material.WATER.createBlockData(d -> ((Levelled) d).setLevel((level < 0 || level > ((Levelled) d).getMaximumLevel()) ? 0 : level));
 	}
-	
+
 	public static BlockData getCauldronData(final Material material, final int level) {
 		if (!material.name().contains("CAULDRON")) {
 			return null;
 		}
 		return material.createBlockData(d -> ((Levelled) d).setLevel((level > 3 || level > ((Levelled) d).getMaximumLevel()) ? 3 : level < 1 ? 1 : level));
 	}
-	
+
 	public static void setCauldronData(final Block block, final int level) {
 		if (block.getBlockData() instanceof Levelled) {
 			Levelled levelled = (Levelled) block.getBlockData();
@@ -1854,17 +1854,17 @@ public class GeneralMethods {
 	public static void setVelocity(Entity entity, Vector vector) {
 		setVelocity(null,entity,vector);
 	}
-	
+
 	public static void setVelocity(Ability ability, Entity entity, Vector vector) {
 		final AbilityVelocityAffectEntityEvent event = new AbilityVelocityAffectEntityEvent(ability, entity, vector);
 		Bukkit.getServer().getPluginManager().callEvent(event);
-		if (event.isCancelled()) 
+		if (event.isCancelled())
 			return;
-		
+
 		Vector velocity = event.getVelocity();
 		if(velocity == null || Double.isNaN(velocity.length()))
 		    return;
-		
+
 		if (entity instanceof TNTPrimed) {
 			if (ConfigManager.defaultConfig.get().getBoolean("Properties.BendingAffectFallingSand.TNT")) {
 				velocity.multiply(ConfigManager.defaultConfig.get().getDouble("Properties.BendingAffectFallingSand.TNTStrengthMultiplier"));
@@ -1898,24 +1898,17 @@ public class GeneralMethods {
 
 	public static int getMCVersion() {
 		String version = Bukkit.getBukkitVersion().split("-", 2)[0];
+
 		if (!version.matches("\\d+\\.\\d+(\\.\\d+)?")) {
 			ProjectKorra.log.warning("Version not valid! Cannot parse version \"" + version + "\"");
-			return 1164; //1.16.4
+			return 1164;
 		}
 
-		String[] split = version.split("\\.", 3);
-
+		String[] split = version.split("\\.");
 		int major = Integer.parseInt(split[0]);
-		int minor = 0;
-		int fix = 0;
+		int minor = Integer.parseInt(split[1]);
+		int fix = (split.length == 3) ? Integer.parseInt(split[2]) : 0;
 
-		if (split.length > 1) {
-			minor = Integer.parseInt(split[1]);
-
-			if (split.length > 2) {
-				fix = Integer.parseInt(split[2]);
-			}
-		}
-		return major * 1000 + minor * 10 + fix; //1.16.4 -> 1164; 1.18 -> 1180
+		return major * 1000 + minor * 10 + fix;
 	}
 }
