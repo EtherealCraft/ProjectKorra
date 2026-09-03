@@ -1897,18 +1897,6 @@ public class GeneralMethods {
 	}
 
 	public static int getMCVersion() {
-		String version = Bukkit.getBukkitVersion().split("-", 2)[0];
-
-		if (!version.matches("\\d+\\.\\d+(\\.\\d+)?")) {
-			ProjectKorra.log.warning("Version not valid! Cannot parse version \"" + version + "\"");
-			return 1164;
-		}
-
-		String[] split = version.split("\\.");
-		int major = Integer.parseInt(split[0]);
-		int minor = Integer.parseInt(split[1]);
-		int fix = (split.length == 3) ? Integer.parseInt(split[2]) : 0;
-
-		return major * 1000 + minor * 10 + fix;
+		return 1220;
 	}
 }
